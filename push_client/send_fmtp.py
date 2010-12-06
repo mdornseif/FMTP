@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-untitled.py
+send_fmtp.py
 
 Created by Maximillian Dornseif on 2010-11-16.
 Copyright (c) 2010 HUDORA. All rights reserved.
@@ -32,7 +32,7 @@ def upload_file(url, filename):
     if not content_type:
         content_type = 'application/octet-stream'
     headers = {'Content-Type': content_type}
-    conn.request("POST", pasedurl.path, open(filename).read(), headers)
+    conn.request("POST", parsedurl.path, open(filename).read(), headers)
     response = conn.getresponse()
     print response.status, response.reason
     conn.close()
