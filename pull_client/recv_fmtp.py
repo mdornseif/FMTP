@@ -36,12 +36,13 @@ def get_messages(url, credentials=None):
     conn.request("GET", parsedurl.path, headers=headers)
     response = conn.getresponse()
     print response.status, response.reason
+    content = response.read()
     conn.close()
     
     if response.status != 200:
         return []
     
-    return json.load(response)
+    return json.loads(content)
 
 
 def get_message(url, credentials=None):
@@ -60,12 +61,13 @@ def get_message(url, credentials=None):
     conn.request("GET", parsedurl.path, headers=headers)
     response = conn.getresponse()
     print response.status, response.reason
+    content = response.read()
     conn.close()
     
     if response.status != 200:
         return None
     
-    return json.load(response)
+    return json.loads(content)
 
 
 def acknowledge(url, credentials=None):
@@ -107,7 +109,7 @@ def main():
         if payload:
             # Do something with message...
             print payload
-            acknowledge(url, credentials=options.credentials)
+            # acknowledge(url, credentials=options.credentials)
 
 
 if __name__ == "__main__":
