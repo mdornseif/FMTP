@@ -18,7 +18,7 @@ The help message goes here.
 '''
 
 
-def get_messages(url):
+def get_messages(url, credentials=None):
     """
     Receive list of messages
     """
@@ -30,7 +30,10 @@ def get_messages(url):
         conn = httplib.HTTPConnection(parsedurl.netloc)
     
     headers = {'Accept': 'application/json'}
-    conn.request("GET", parsedurl.path, headers)
+    if credentials:
+        headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
+    
+    conn.request("GET", parsedurl.path, headers=headers)
     response = conn.getresponse()
     print response.status, response.reason
     conn.close()
@@ -41,7 +44,7 @@ def get_messages(url):
     return json.load(response)
 
 
-def get_message(url):
+def get_message(url, credentials=None):
     """Read a single message"""
     
     parsedurl = urlparse.urlparse(url)
@@ -51,7 +54,10 @@ def get_message(url):
         conn = httplib.HTTPConnection(parsedurl.netloc)
     
     headers = {'Accept': 'application/json'}
-    conn.request("GET", parsedurl.path, headers)
+    if credentials:
+        headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
+    
+    conn.request("GET", parsedurl.path, headers=headers)
     response = conn.getresponse()
     print response.status, response.reason
     conn.close()
@@ -62,7 +68,7 @@ def get_message(url):
     return json.load(response)
 
 
-def acknowledge(url):
+def acknowledge(url, credentials=None):
     """Send acknowledgement for received message"""
 
     parsedurl = urlparse.urlparse(url)
@@ -71,7 +77,11 @@ def acknowledge(url):
     else:
         conn = httplib.HTTPConnection(parsedurl.netloc)
     
-    conn.request("DELETE", parsedurl.path)
+    headers = {}
+    if credentials:
+        headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
+    
+    conn.request("DELETE", parsedurl.path, headers=headers)
     response = conn.getresponse()
     print response.status, response.reason
     conn.close()
@@ -85,17 +95,19 @@ def main():
     parser = OptionParser()
     parser.add_option("-e", "--endpoint", dest="endpoint",
                       help="URL of the endpoint")
+    parser.add_option("-c", "--credentials", dest="credentials",
+                      help="Credentials", default=None)
     (options, args) = parser.parse_args()
 
-    print "receiving list from %r" % options.url
-    data = get_messages(options.endpoint)
+    print "receiving list from %r" % options.endpoint
+    data = get_messages(options.endpoint, credentials=options.credentials)
     for message in data['messages']:
         url = message['url']
-        payload = get_message(url)
+        payload = get_message(url, credentials=options.credentials)
         if payload:
             # Do something with message...
             print payload
-            acknowledge(url)
+            acknowledge(url, credentials=options.credentials)
 
 
 if __name__ == "__main__":
