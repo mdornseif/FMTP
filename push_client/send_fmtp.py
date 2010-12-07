@@ -31,6 +31,8 @@ def upload_file(url, filename):
     content_type = mimetypes.guess_type(filename)
     if not content_type:
         content_type = 'application/octet-stream'
+    else:
+        content_type = content_type[0]
     headers = {'Content-Type': content_type}
     conn.request("POST", parsedurl.path, open(filename).read(), headers)
     response = conn.getresponse()
@@ -46,8 +48,8 @@ def main():
                       help="URL of the endpoint")
     (options, args) = parser.parse_args()
 
-    print "uploading %r to %r" % (options.filename, options.url)
-    upload_file(options.url, options.filename)
+    print "uploading %r to %r" % (options.filename, options.endpoint)
+    upload_file(options.endpoint, options.filename)
 
 
 if __name__ == "__main__":
