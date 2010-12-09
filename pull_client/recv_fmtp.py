@@ -8,6 +8,7 @@ Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
 import sys
+import os
 from optparse import OptionParser
 import httplib
 import urlparse
@@ -99,17 +100,22 @@ def main():
                       help="URL of the endpoint")
     parser.add_option("-c", "--credentials", dest="credentials",
                       help="Credentials", default=None)
+    parser.add_option("-d", "--directory", dest="directory",
+                      help="Directory where documents are stored", default=".")
+
     (options, args) = parser.parse_args()
 
-    print "receiving list from %r" % options.endpoint
+    print "Receiving list from %r" % options.endpoint
     data = get_messages(options.endpoint, credentials=options.credentials)
     for message in data['messages']:
         url = message['url']
         payload = get_message(url, credentials=options.credentials)
         if payload:
-            # Do something with message...
-            print payload
-            # acknowledge(url, credentials=options.credentials)
+            filename = os.path.join(options.directory, os.path.basename(urlparse.urlparse(url).path))
+            f = open(filename, 'w')
+            f.write(payload)
+            f.close()
+            acknowledge(url, credentials=options.credentials)
 
 
 if __name__ == "__main__":
