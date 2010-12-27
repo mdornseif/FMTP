@@ -19,7 +19,7 @@ The help message goes here.
 '''
 
 
-def upload_file(url, filename):
+def upload_file(url, filename, credentials=None):
     """Uploads a file to a Frugal Message Trasfer Protocol (FMTP) Server."""
     parsedurl = urlparse.urlparse(url)
     if parsedurl.scheme == 'https':
@@ -34,6 +34,9 @@ def upload_file(url, filename):
     else:
         content_type = content_type[0]
     headers = {'Content-Type': content_type}
+    
+    if credentials:
+        headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
     conn.request("POST", parsedurl.path, open(filename).read(), headers)
     response = conn.getresponse()
     print response.status, response.reason
@@ -46,10 +49,13 @@ def main():
                       help="upload this file", metavar="FILE")
     parser.add_option("-e", "--endpoint", dest="endpoint",
                       help="URL of the endpoint")
+    parser.add_option("-c", "--credentials", dest="credentials",
+                      help="Credentials", default=None)
+    
     (options, args) = parser.parse_args()
 
     print "uploading %r to %r" % (options.filename, options.endpoint)
-    upload_file(options.endpoint, options.filename)
+    upload_file(options.endpoint, options.filename, options.credentials)
 
 
 if __name__ == "__main__":

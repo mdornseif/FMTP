@@ -8,17 +8,17 @@ Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
 import sys
+import os
 from optparse import OptionParser
 import httplib
 import urlparse
+import xml.etree.ElementTree as ET
 import simplejson as json
 
-help_message = '''
-The help message goes here.
-'''
+help_message = """Reference Implementation of a FMTP pull client"""
 
 
-def get_messages(url):
+def get_messages(url, credentials=None):
     """
     Receive list of messages
     """
@@ -29,19 +29,24 @@ def get_messages(url):
     else:
         conn = httplib.HTTPConnection(parsedurl.netloc)
     
-    headers = {'Accept': 'application/json'}
-    conn.request("GET", parsedurl.path, headers)
+    headers = {'Accept': 'application/xml'}
+    if credentials:
+        headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
+    
+    conn.request("GET", parsedurl.path, headers=headers)
     response = conn.getresponse()
     print response.status, response.reason
+    content = response.read()
     conn.close()
     
     if response.status != 200:
         return []
     
-    return json.load(response)
+    tree = ET.fromstring(content)
+    return [msg.findtext('url') for msg in tree.findall('messages/message')]
 
 
-def get_message(url):
+def get_message(url, credentials=None):
     """Read a single message"""
     
     parsedurl = urlparse.urlparse(url)
@@ -50,19 +55,23 @@ def get_message(url):
     else:
         conn = httplib.HTTPConnection(parsedurl.netloc)
     
-    headers = {'Accept': 'application/json'}
-    conn.request("GET", parsedurl.path, headers)
+    headers = {}
+    if credentials:
+        headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
+    
+    conn.request("GET", parsedurl.path, headers=headers)
     response = conn.getresponse()
     print response.status, response.reason
+    content = response.read()
     conn.close()
     
     if response.status != 200:
         return None
     
-    return json.load(response)
+    return content
 
 
-def acknowledge(url):
+def acknowledge(url, credentials=None):
     """Send acknowledgement for received message"""
 
     parsedurl = urlparse.urlparse(url)
@@ -71,7 +80,11 @@ def acknowledge(url):
     else:
         conn = httplib.HTTPConnection(parsedurl.netloc)
     
-    conn.request("DELETE", parsedurl.path)
+    headers = {}
+    if credentials:
+        headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
+    
+    conn.request("DELETE", parsedurl.path, headers=headers)
     response = conn.getresponse()
     print response.status, response.reason
     conn.close()
@@ -85,17 +98,28 @@ def main():
     parser = OptionParser()
     parser.add_option("-e", "--endpoint", dest="endpoint",
                       help="URL of the endpoint")
+    parser.add_option("-c", "--credentials", dest="credentials",
+                      help="Credentials", default=None)
+    parser.add_option("-d", "--directory", dest="directory",
+                      help="Directory where documents will be stored", default=".")
+
     (options, args) = parser.parse_args()
 
-    print "receiving list from %r" % options.url
-    data = get_messages(options.endpoint)
-    for message in data['messages']:
-        url = message['url']
-        payload = get_message(url)
+    print "Receiving list from %r" % options.endpoint
+    messages = get_messages(options.endpoint, credentials=options.credentials)
+    print messages
+    for url in messages:
+
+        payload = get_message(url, credentials=options.credentials)
         if payload:
-            # Do something with message...
-            print payload
-            acknowledge(url)
+            path = urlparse.urlparse(url).path
+            if path.endswith('/'):
+                path = path[:-1]
+            filename = os.path.join(options.directory, os.path.split(path)[-1])
+            f = open(filename, 'w')
+            f.write(payload)
+            f.close()
+            acknowledge(url, credentials=options.credentials)
 
 
 if __name__ == "__main__":
