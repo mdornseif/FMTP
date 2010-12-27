@@ -12,11 +12,10 @@ import os
 from optparse import OptionParser
 import httplib
 import urlparse
+import xml.etree.ElementTree as ET
 import simplejson as json
 
-help_message = '''
-The help message goes here.
-'''
+help_message = """Reference Implementation of a FMTP pull client"""
 
 
 def get_messages(url, credentials=None):
@@ -30,7 +29,7 @@ def get_messages(url, credentials=None):
     else:
         conn = httplib.HTTPConnection(parsedurl.netloc)
     
-    headers = {'Accept': 'application/json'}
+    headers = {'Accept': 'application/xml'}
     if credentials:
         headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
     
@@ -43,7 +42,8 @@ def get_messages(url, credentials=None):
     if response.status != 200:
         return []
     
-    return json.loads(content)
+    tree = ET.fromstring(content)
+    return [msg.findtext('url') for msg in tree.findall('messages/message')]
 
 
 def get_message(url, credentials=None):
@@ -55,7 +55,7 @@ def get_message(url, credentials=None):
     else:
         conn = httplib.HTTPConnection(parsedurl.netloc)
     
-    headers = {'Accept': 'application/json'}
+    headers = {}
     if credentials:
         headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
     
@@ -68,7 +68,7 @@ def get_message(url, credentials=None):
     if response.status != 200:
         return None
     
-    return json.loads(content)
+    return content
 
 
 def acknowledge(url, credentials=None):
@@ -101,17 +101,21 @@ def main():
     parser.add_option("-c", "--credentials", dest="credentials",
                       help="Credentials", default=None)
     parser.add_option("-d", "--directory", dest="directory",
-                      help="Directory where documents are stored", default=".")
+                      help="Directory where documents will be stored", default=".")
 
     (options, args) = parser.parse_args()
 
     print "Receiving list from %r" % options.endpoint
-    data = get_messages(options.endpoint, credentials=options.credentials)
-    for message in data['messages']:
-        url = message['url']
+    messages = get_messages(options.endpoint, credentials=options.credentials)
+    print messages
+    for url in messages:
+
         payload = get_message(url, credentials=options.credentials)
         if payload:
-            filename = os.path.join(options.directory, os.path.basename(urlparse.urlparse(url).path))
+            path = urlparse.urlparse(url).path
+            if path.endswith('/'):
+                path = path[:-1]
+            filename = os.path.join(options.directory, os.path.split(path)[-1])
             f = open(filename, 'w')
             f.write(payload)
             f.close()
