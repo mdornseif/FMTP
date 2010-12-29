@@ -47,7 +47,11 @@ class PrintServerAPI(object):
         return urllib2.urlopen(req).read()
     
     def list_jobs(self):
-        text = self.fetch(self.config['server_url'])
+        try:
+            text = self.fetch(self.config['server_url'])
+        except urllib2.URLError, exc:
+            logging.error('Error while retrieving job list: %s' % str(exc))
+            return []
         json = loads(text)
         return [Job(self, url) for url in json['jobs']]
     

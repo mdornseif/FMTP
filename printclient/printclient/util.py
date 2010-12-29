@@ -14,7 +14,11 @@ PRINTER_TYPE_LIST = [
 
 def list_printers():
     printers = []
-    default_printer_name = win32print.GetDefaultPrinter()
+    try:
+        default_printer_name = win32print.GetDefaultPrinter()
+    except RuntimeError:
+        default_printer_name = ''
+    
     for printer_type in PRINTER_TYPE_LIST:
         try:
             for flags, description, name, comment in list(win32print.EnumPrinters(printer_type[0], None, 1)):

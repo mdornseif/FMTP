@@ -59,7 +59,7 @@ SectionEnd
 Section "Start Menu Shortcuts"
 
   CreateDirectory "$SMPROGRAMS\IPSClient"
-  CreateShortCut "$SMPROGRAMS\IPSClient\printclient.lnk" "$INSTDIR\printclient.exe" "" "$INSTDIR\printclient.exe" 0
+  CreateShortCut "$SMPROGRAMS\IPSClient\ipsclient.lnk" "$INSTDIR\ipsclient.exe" "" "$INSTDIR\ipsclient.exe" 0
   CreateShortCut "$SMPROGRAMS\IPSClient\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
   
 SectionEnd
