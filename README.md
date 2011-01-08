@@ -2,6 +2,23 @@
 
 FMTP dient dem zuverlässigen Austausch von Nachrichten per [HTTP](http://www.ietf.org/rfc/rfc1945.txt)
 nach den Prinzipien von [REST](http://www.ics.uci.edu/~fielding/pubs/dissertation/top.htm).
+FMTP ist besser als [40 Jahre alte FTP Protocol][rfc114] zum automatisierten Austausch zwischen Unternehmen geeignet. Die Vorteile von FMTP sind:
+
+[rfc114]: http://tools.ietf.org/html/rfc114
+
+
+* **Sicher**: Vertraulichkeit und Authentizität können durch SSL/TLS sichergestellt werden. Als HTTP-basiertes Protokoll, kann FMTP gut von Firewalls und Proxies verarbeitet werden.
+* **Zuverlässig**: Es ist sichergestellt, das nachrichten bei vorrübergehenden Ausfällen von Internet oder Server nicht verloren gehen. Auch werden Dubletten - wichtig in Kufmännischen Systemen - vermieden.
+* **Nachvollziehbar**: Zu jeder Nachricht wird eine Empfangsbestätigung erzeugt. An ebiden Enden lässt sich somit feststellen, ob Daten wirklich übertragen wurden.
+* **Resourcen schonend**: Als HTTP Basiertes Protokoll kann FMTP mit minimalen Serverresourcen und Bandbreite auskommen. HTTP erlaubt uns Kompression und Conditional-GET einzusetzen, so das selbst über teure und Langsame Satelittenverbindungen FMTP wirtschaftlich möglich ist.
+* **Billig**: FMTP ist einfach. Deswegen ist es einfach zu betreiben udn überwachen udn einfach zu implementieren. In einer modernen Programmierumgebung, die HTTP udn ML zur Verfügung stellt sollten Push- und Pull-Clients in einem Manntag zu implementieren sein.
+* **Mit Hausmitteln einsetzbar**: Im Zweifel können Sie FMTP nur mit einer Unix-Kommandozeile oder einem Webbrowser bewaffnet einsetzen.
+* **Universell**: Ob zum Übertragen von Aufträgen oder zum Ansteuern von Druckern an entfernten Standorten - FMTP ist für eine breite Palette von Einsatzgebieten geeignet.
+
+In diesem Projekt sind diverse Implementierungen von FMTP-Clients eines FMTP-Servers zusammengefasst.
+
+
+# Das Protokoll
 
 Es gibt zwei Transportmodi, der Sendemodus wird als *push* und der Empfangsmodus als *pull* bezeichnet.
 Für den Tansfer einer Nachricht von einem Sender an einem Empfänger wird ein Endpunkt definiert, der mit einer Queue in einer [MOM](http://de.wikipedia.org/wiki/Message_Oriented_Middleware) vergleichbar ist.
