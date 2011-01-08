@@ -8,7 +8,10 @@ import urllib2
 import tempfile
 import base64
 
-from simplejson import loads
+try:
+    import json
+except ImportError:
+    import simplejson as json
 
 
 class Job(object):
@@ -47,9 +50,13 @@ class PrintServerAPI(object):
         return urllib2.urlopen(req).read()
     
     def list_jobs(self):
-        text = self.fetch(self.config['server_url'])
-        json = loads(text)
-        return [Job(self, url) for url in json['jobs']]
+        try:
+            text = self.fetch(self.config['server_url'])
+        except urllib2.URLError, exc:
+            logging.error('Error while retrieving job list: %s' % str(exc))
+            return []
+        data = json.loads(text)
+        return [Job(self, url) for url in data['jobs']]
     
     def delete(self, url):
         headers = self._make_headers()

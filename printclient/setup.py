@@ -33,7 +33,7 @@ class Target:
         self.name = "IPS Client"
 
 TARGET = Target(
-    dest_base='printclient',
+    dest_base='ipsclient',
     script='run.py',
     description="""IPS Client - a client for a FMTP based printing system""",
     #~ other_resources=[
@@ -46,7 +46,7 @@ TARGET = Target(
 
 
 setup(
-    name="printclient",
+    name="ipsclient",
     windows=[TARGET],
     data_files=[
         ('.', ['logging.ini']),
