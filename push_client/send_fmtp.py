@@ -16,7 +16,7 @@ import mimetypes
 import os.path
 
 
-def upload_file(url, filename, guid):
+def upload_file(url, filename, guid, credentials=None):
     """Uploads a file to a Frugal Message Trasfer Protocol (FMTP) Server."""
     parsedurl = urlparse.urlparse(url)
     if parsedurl.scheme == 'https':
@@ -31,7 +31,8 @@ def upload_file(url, filename, guid):
         content_type = content_type[0]
     headers = {'Content-Type': content_type}
     path = parsedurl.path + urllib.quote(guid)
-    conn.request("POST", path, open(filename).read(), headers)
+        headers['Authorization'] = 'Basic %s' % (credentials.encode('base64').strip())
+    conn.request("POST", parsedurl.path, open(filename).read(), headers)
     response = conn.getresponse()
     print response.status, response.reason
     conn.close()
@@ -45,13 +46,16 @@ def main():
                       help="URL of the endpoint")
     parser.add_option("-g", "--guid", default = '',
                       help="GUID of the message [default: filename]")
+    parser.add_option("-c", "--credentials", dest="credentials",
+                      help="Credentials", default=None)
+    
     (options, args) = parser.parse_args()
 
     guid = options.guid
     if not guid:
         guid = os.path.basename(options.filename)
     print "uploading %r to %r" % (options.filename, options.endpoint)
-    upload_file(options.endpoint, options.filename, guid)
+    upload_file(options.endpoint, options.filename, guid, options.credentials)
 
 
 if __name__ == "__main__":
