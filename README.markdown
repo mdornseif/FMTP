@@ -54,7 +54,7 @@ Die Referenzimplementation enthält einen [PUSH-Client](https://github.com/mdorn
 
 Der folgende Befehl lädt die Datei *file* mit dem GUID *guid* zum Endpunkt *http://example.com/q* hoch:
 
-    python push_client/send_fmtp.py -f file -e http://example.com/q -g guid
+    python fmtp_client/push.py -f file -e http://example.com/q -g guid
 
 
 ## Daten empfangen: PULL
@@ -75,7 +75,7 @@ Die URLs sind durch ‘\n’ (ASCII 10) voneinander getrennt.
 
     >>> GET https://example.com/q
     >>> Host: example.com
-    
+
     <<< 200 OK
     <<< Content-Type: text/plain
     <<<
@@ -89,7 +89,7 @@ Aufgrund der Informationen in dieser Liste kann nun eine Nachricht abgerufen wer
 
     <<< 200 OK
     <<< Content-Type: application/json
-    <<< 
+    <<<
     <<< 'content'
 
 Der Content-Type ist der gleiche, der von dem Sender mitgegeben wurde.
@@ -114,7 +114,7 @@ Zum einen steht das JSON Format zur Verfügung:
 
     <<< 200 OK
     <<< Content-Type: application/json
-    <<<    
+    <<<
     <<< {
     <<<  'min_retry_interval': 500,
     <<<  'max_retry_interval': 60000,
@@ -164,10 +164,122 @@ Die Referenzimplementation enthält einen [PULL-Client](https://github.com/mdorn
 
 Der folgende Befehl lädt alle Nachrichten vom Endpunkt *http://example.com/q* runter:
 
-    python pull_client/recv_fmtp.py -e http://example.com/q
+    python fmtp_client/pull.py -e http://example.com/q
 
 ## FMTP-Server
 ### Referenzimplementation
 
 Die Referenzimplementation enthält einen [FMTP-Server](https://github.com/mdornseif/FMTP/tree/master/fmtp-server).
 Der Server ist als Anwendung für [Google App Engine](http://code.google.com/intl/de-DE/appengine/) konzipiert.
+
+### Nutzung der Bibliothek
+
+#### Abhängikeiten
+
+Um eine Applikation FMTP-Fähig zu machen, müssen zunächst die Abhängiketen erfüllt werden. z.Z wird benötigt:
+
+* [gaetk](https://github.com/hudora/appengine-toolkit)
+* [huTools](https://github.com/hudora/huTools)
+
+#### Veröffentlichung mit Webapp/Google App Engine
+
+Das Rest-Interface wird von zwei Handlern realisiert, die die Nachrichten im google Datastore speichern.
+
+Ein Minimaler FMTP-Server kann so realisiert werden:
+
+    from google.appengine.ext.webapp import util
+    from gaetk.webapp2 import WSGIApplication
+    from fmtp-server import QueueHandler, MessageHandler
+
+
+    app = webapp.WSGIApplication([
+            # Der QueueHandler implementiert die Nachrichtenübersicht.
+            (r'/fmtp/([^/]+)/', QueueHandler),
+            # Der MessageHandler implementiert das Erstellen, Holen und Löschen von Nachrichten.
+            (r'/fmtp/([^/]+)/(.+)/', MessageHandler),
+    ], debug=True)
+
+    if __name__ == '__main__':
+        util.run_wsgi_app(app)
+
+Zu beachten ist hier, dass die Pfade der Handler das gleiche Prefix haben müssen (im Beispiel /fmtp), die
+relative Anordnung darf nicht geändert werden.
+Weiterhin muss der Messagehandler mit einem trailing slash gemountet sein.
+
+#### Anpassungen der Nachrichtenliste
+
+Um die Nachrichtenliste anzupassen, können folgende Änderungen vorgenommen werden:
+
+    class QueueHandler(fmtp_server.QueueHandler):
+        # Clients werden gebeten, mindestens alle 10 Sekunden zu aktualisieren
+        max_retry_interval = 10000
+
+        # Clients werden gebeten, höchstens 2mal die Sekunde zu aktualisieren
+        min_retry_interval = 500
+
+        # Clients maximal 10 Nachrichten gezeigt
+        max_messages = 10
+
+Um auf Ereignisse zu reagieren, oder um den Zugriff zu kontrollieren, kann die Methode on_access überschrieben
+werden:
+
+    class QueueHandler(fmtp_server.QueueHandler):
+        def on_access(self, message_queue_name):
+            # Zugriffe werden gelogged
+            logging.info('es wurde auf die Queue %r zugegriffen', message_queue_name)
+
+            # Betrachten einer Queue erfordert Authentifikation.
+            self.login_required()
+
+#### Anpassungen der Nachrichten
+
+Um das erstellen, löschen und anzeigen von Nachrichten anzupassen, können folgende Änderungen vorgenommern
+werden:
+
+    class MessageHandler(fmtp_server.MessageHandler):
+
+        # Nur numerische guids erlauben.
+        guid_pattern = '^[0-9]+$'
+
+        def check_message_queue_name(self, message_queue_name):
+            # Wir erlabuen nur queues, die mit 'queue_' anfangen.
+            return message_queue_name.startswith('queue_')
+
+        def on_access(self, method, message_queue_name, guid, message):
+            # Zugriffe werden gelogged
+            logging.info('es wurde auf die Nachricht %r zugegriffen', message)
+
+            # Betrachten einer Nachricht erfordert Authentifikation.
+            self.login_required()
+
+        def on_created(self, message):
+            # das Erstellen von Nachrichten wurd gelogged
+            logging.info('Eine neue Nachricht wurde erstellt: %r', message)
+
+        def on_deleted(self, message):
+            # das Löschen von Nachrichten wird gelogged
+            logging.info('Die Nachricht %r wurde gelöscht.', message)
+
+
+#### Anpassungen der Administrativen Sicht
+
+Die Administrative Sicht auf queues ist optional (sie ist nicht für einen normalen Betrieb eines FMTP-Servers)
+erforderlich.
+
+Um sie dennoch zu nutzen, muss sie zunächst veröffentlicht werden:
+
+    app = webapp.WSGIApplication([
+            (r'/fmtp/admin/([^/]+)/', AdminHandler),
+            # ...
+    ])
+
+Um die Sicht anzupassen, können folgende Änderungen vorgenommen werden:
+
+    class AdminHandler(fmtp_server.MessageHandler):
+        
+        # wieviele Messages angezeigt werden
+        max_messages = 50
+        
+        def on_access(self):
+            # analog zu den anderen Handlern
+            self.login_required()

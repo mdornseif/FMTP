@@ -1,2 +1,7 @@
 .DS_Store
 *~
+fmtp-server/pythonenv
+fmtp-server/docs
+
+fmtp-client/pythonenv
+fmtp-client/docs
