@@ -69,7 +69,7 @@ class Server(object):
     def __init__(self, url, credentials=None):
         """Instantiiert die Schnittstelle
 
-        url: Basisurl, unterhalb derer sich die FMTP-queues befinden (z.B. http://example.com, wenn 
+        url: Basisurl, unterhalb derer sich die FMTP-queues befinden (z.B. http://example.com, wenn
              http://example.com/q eine queue ist)
         credetials: HTTP-Credetials in der form username:password
         """

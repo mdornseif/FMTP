@@ -290,9 +290,9 @@ class TestAdminHandlerGet(DbTestCase):
     def test_returns_correct_list(self):
         result = self.app.get('/admin/alpha/')
 
-        self.assertEqual(json.loads(result.body), {
-            u'success': True,
-            u'messages': [
+        body = json.loads(result.body)
+
+        self.assertEqual(body['messages'], [
                 {
                     u'queue': u'alpha',
                     u'guid': u'deleted',
@@ -309,7 +309,7 @@ class TestAdminHandlerGet(DbTestCase):
                     u'content_type': u'text/plain',
                 }
             ]
-        })
+        )
 
     def test_on_access_gets_called(self):
         """Das Event on_access wird aufgerufen."""
