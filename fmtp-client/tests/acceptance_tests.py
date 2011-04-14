@@ -19,11 +19,11 @@ class TestServer(unittest.TestCase):
         self.queue = self.server['chat']
 
     def test_has_correct_url(self):
-        """Überprüft, ob die url der Queue korrekt ist"""
+        """Überprüft, ob die url der Queue korrekt ist."""
         self.assertEquals(self.queue.queue_url, 'http://example.com/chat/')
 
-    def test_has_corrent_creds(self):
-        """Überprüft, ob die Credentials korrekt sind"""
+    def test_has_correct_creds(self):
+        """Überprüft, ob die Credentials korrekt sind."""
         self.assertEquals(self.queue.credentials, 'victoria:secret')
 
 
@@ -47,13 +47,13 @@ class TestMessagePosting(unittest.TestCase):
                                                      headers={'Content-Type': 'text/plain'}, credentials=None)
 
     def test_posting_over_existing_message(self):
-        """Der Versuch, eine existierende Nachricht erneut zu Posten, führt zu FtmpMessageExsists"""
+        """Der Versuch, eine existierende Nachricht erneut zu Posten, führt zu FtmpMessageExsists."""
         self.fetch.return_value = (409, {}, '')
         self.assertRaises(fmtp_client.FmtpMessageExists, self.queue.post_message, '1', 'text/plain',
                                                                                            'Do it again, sam')
 
     def test_posting_over_deleted_message(self):
-        """Der Versuch, eine bereits gelöschte Nachricht erneut zu Posten, führt zu FtmpMessageExsists"""
+        """Der Versuch, eine bereits gelöschte Nachricht erneut zu Posten, führt zu FtmpMessageExsists."""
         self.fetch.return_value = (410, {}, '')
         self.assertRaises(fmtp_client.FmtpMessageDeleted, self.queue.post_message, '1', 'text/plain',
                                                                                          'Afterlife is scary')

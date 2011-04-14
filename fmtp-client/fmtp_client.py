@@ -63,7 +63,8 @@ class Server(object):
     Ein Server startet HTTP-Verbindungen nur 'on demand', es ist daher sicher, Server in einer Konfigurations-
     oder Environmentdatei als Singletons zu erstellen und später zu nutzen.
 
-    Sofern man nur Queues hat, deren Namen bekannt sind, ist die benutzung von Queue zu bevorzugen.
+    Sofern man nur Queues hat, deren Namen zur Programmierzeit bekannt sind, ist die benutzung von Queue zu
+    bevorzugen.
     """
 
     def __init__(self, url, credentials=None):

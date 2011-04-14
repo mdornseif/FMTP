@@ -21,7 +21,8 @@ In diesem Projekt sind diverse Implementierungen von FMTP-Clients eines FMTP-Ser
 # Das Protokoll
 
 Es gibt zwei Transportmodi, der Sendemodus wird als *push* und der Empfangsmodus als *pull* bezeichnet.
-Für den Tansfer einer Nachricht von einem Sender an einem Empfänger wird ein Endpunkt definiert, der mit einer Queue in einer [MOM](http://de.wikipedia.org/wiki/Message_Oriented_Middleware) vergleichbar ist.
+Für den Tansfer einer Nachricht von einem Sender an einem Empfänger wird ein Endpunkt definiert, der mit einer
+Queue in einer [MOM](http://de.wikipedia.org/wiki/Message_Oriented_Middleware) vergleichbar ist.
 In den folgenden Beispielen wird der Endpunkt *https://example.com/q* verwendet.
 
 Nachrichten sollten einen eindeutigen Bezeichner haben, der pro Endpunkt nur einmal vorkommen darf.
@@ -50,12 +51,33 @@ Es existiert bereits eine Nachricht mit dem gleichen GUID. Die neue Nachricht wi
 Es existierte bereits eine Nachricht mit dem gleichen GUID, die aber bereits verarbeitet bzw. gelöscht wurde. Die Nachricht wird ebenfalls nicht gespeichert.
 
 ### Referenzimplementation
-Die Referenzimplementation enthält einen [PUSH-Client](https://github.com/mdornseif/FMTP/tree/master/push_client).
+
+#### Kommandozeile
+
+Die Referenzimplementation enthält einen [PUSH-Client](https://github.com/mdornseif/FMTP/tree/master/fmtp-client/push.py).
 
 Der folgende Befehl lädt die Datei *file* mit dem GUID *guid* zum Endpunkt *http://example.com/q* hoch:
 
-    python fmtp_client/push.py -f file -e http://example.com/q -g guid
+    python fmtp-client/push.py -f file -e http://example.com/q -g guid
 
+#### Bibliothek
+
+Das folgende Schnipsel legt eine Nachricht mit dem Inhalt *hello world!* auf dem Endpunkt *http://example.com/q* ab:
+
+   import fmtp_client
+
+   queue = fmtp_client.Queue('http://example.com/q/')
+   queue.post_message('myguid', 'text/plain', 'hello world!')
+
+Im obigen Beispiel ist die Queue zur Zeit des Programmierens bekannt (*q*). Ist dies nicht der Fall, kann
+folgendes getan werden:
+
+    import fmtp_client
+
+    server = fmtp_client.Server('http://example.com/')
+
+    queue = server[letter.receiver_name]
+    queue.post_message(letter.guid, 'text/plain', letter.text)
 
 ## Daten empfangen: PULL
 Das Protokoll unterstützt kein Locking.
@@ -160,11 +182,26 @@ wie viele Millisekunden der Client minimal und maximal bis zur nächsten Anfrage
 
 
 ### Referenzimplementation
-Die Referenzimplementation enthält einen [PULL-Client](https://github.com/mdornseif/FMTP/tree/master/pull_client).
+
+#### Kommandozeile
+
+Die Referenzimplementation enthält einen [PULL-Client](https://github.com/mdornseif/FMTP/tree/master/fmtp-client/pull.py).
 
 Der folgende Befehl lädt alle Nachrichten vom Endpunkt *http://example.com/q* runter:
 
     python fmtp_client/pull.py -e http://example.com/q
+
+#### Bibliothek
+
+Das folgende Schnipsel ruft alle Nachrichten vom Endpunkt *http://example.com/q* ab, gibt sie aus, und entfernt sie aus der Queue.
+
+    import fmtp_client
+
+    queue = fmtp_client.Queue('http://example.com/q')
+
+    for message in queue:
+        print message.content
+        message.acknowledge()
 
 ## FMTP-Server
 ### Referenzimplementation
