@@ -7,7 +7,7 @@ Created by Maximillian Dornseif on 2010-11-16.
 Copyright (c) 2010 HUDORA. All rights reserved.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 
 from huTools import hujson as json
@@ -30,6 +30,9 @@ class Message(db.Model):
 
 class QueueHandler(BasicHandler):
     """Handler für FMTP-Nachrichtenlisten, gemäss README/Listenformate.
+
+    Der Handler kümmert sich um die Auflistung der Nachrichten in einer Queue in verschiedenen Formaten (GET),
+    und um Garbage Collection (DELETE).
 
     Dieser Handler ist als Basisklasse vorgesehen, in dessen Erben zur Anpassung
 
@@ -106,6 +109,7 @@ class MessageHandler(BasicHandler):
     * on_created, und
     * on_deleted
     * check_messagequeue_name
+
 
     überschreiben werden können (siehe dort zur wozu).
     """
@@ -237,12 +241,17 @@ class AdminHandler(JsonResponseHandler):
 
     * on_access,
     * max_messages
+    * retention_period_days
 
     überschreiben werden können (siehe dort zur wozu).
     """
 
     # Maximale Anzahl von Nachrichten, die angezeigt werden
     max_messages = 1000
+
+    # Minimale Zeit in Tagen, die die gelöschten Nachrichten aufbewahrt werden sollen (also nicht garbage
+    # collected werden dürfen)
+    retention_period_days = 7
 
     def get(self, message_queue_name):
         """Gibt eine Liste von [max_messages] zusammenfassungen von Nachrichten wieder.
@@ -254,11 +263,32 @@ class AdminHandler(JsonResponseHandler):
         return self.paginate(messages, self.max_messages, datanodename='messages',
                                                           formatter=self._message_as_dict)
 
+    def delete(self, message_queue_name):
+        """ Garbagecollected Nachrichten in der angegebenen Queue.
+
+        Löst das Ereignis on_access aus, und löscht alle Nachrichten, die vor nicht weniger als
+        `retention_period_days` Tagen als gelöscht markiert wurden (siehe `MessageHandler.delete`)
+        """
+        self.on_access(message_queue_name)
+
+        delete_before = datetime.now() - timedelta(days=self.retention_period_days)
+        messages = (Message.all()
+                           .filter('message_queue_name = ', message_queue_name)
+                           .filter('deleted_at <', delete_before))
+
+        collected = messages.count()
+        db.delete(messages)
+
+        return {
+            'success': True,
+            'deleted': collected,
+        }
+
     def on_access(self, message_queue_name):
         """Event, das beim Versuch, eine Messagequeue abzufragen ausgelöst wird.
         message_queue_name ist der Parameter aus der URL.
 
-        Um den Zugriff auf zu kontrollieren, kann ggf. HTTP401_Unauthorized
+        Um den Zugriff zu kontrollieren, kann ggf. HTTP401_Unauthorized
         geraised werden.
         """
         pass

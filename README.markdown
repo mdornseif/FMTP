@@ -297,26 +297,58 @@ werden:
             # das Löschen von Nachrichten wird gelogged
             logging.info('Die Nachricht %r wurde gelöscht.', message)
 
-
 #### Anpassungen der Administrativen Sicht
 
-Die Administrative Sicht auf queues ist optional (sie ist nicht für einen normalen Betrieb eines FMTP-Servers)
-erforderlich.
+Die Administrative Sicht auf queues ist optional (sie ist nicht für einen normalen Betrieb eines FMTP-Servers
+erforderlich). Sie bietet eine Übersicht über den Inhalt einer Queue, und eine Schnittstelle zur Garbage 
+Collection.
 
-Um sie dennoch zu nutzen, muss sie zunächst veröffentlicht werden:
+Um die Sicht zu nutzen, muss sie zunächst veröffentlicht werden:
 
     app = webapp.WSGIApplication([
             (r'/fmtp/admin/([^/]+)/', AdminHandler),
             # ...
     ])
 
+Nun kann per GET auf einen Queue-Name informationen zu dieser Queue abgefragt werden:
+
+    curl -X GET /fmtp/admin/somequeue/
+
+    {
+        'success': True,
+        'messages': [
+                {
+                    'queue': 'alpha',
+                    'guid': '123123',
+                    'is_deleted': False,
+                    'created_at': '2011-03-23 00:00:00',
+                    'deleted_at': '2011-03-23 00:00:00',
+                    'content_type': 'text/plain',
+                },
+                # ...
+        ]
+    }
+
+Per DELETE auf einen Queue-Namen kann die Garbage Collection dieser Queue gestartet werden:
+
+    curl -X DELETE /fmtp/admin/somequeue/
+
+    {
+        'success': True,
+        'deleted': 23,
+    }
+
+
 Um die Sicht anzupassen, können folgende Änderungen vorgenommen werden:
 
-    class AdminHandler(fmtp_server.MessageHandler):
-        
+    class AdminHandler(fmtp_server.AdminHandler):
+
         # wieviele Messages angezeigt werden
         max_messages = 50
-        
+
+        # frist, nach der gelöschte Nachrichten frühestens garbagecollected werden können, in Tagen
+        retention_period_days = 7
+
         def on_access(self):
             # analog zu den anderen Handlern
             self.login_required()

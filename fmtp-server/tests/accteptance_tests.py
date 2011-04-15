@@ -6,7 +6,7 @@ fmtp-server/acceptance_tests.py
 Created by Philipp Benjamin Köppechen on 2011-03-01.
 Copyright (c) 2010 HUDORA. All rights reserved.
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 import unittest
 
 from gaetk.webapp2 import WSGIApplication
@@ -263,6 +263,64 @@ class TestQueueHandlerGet(DbTestCase):
         self.app.get('/somequeue/')
 
         QueueHandler.on_access.assert_called_with('somequeue')
+
+
+class TestAdminHandlerDelete(DbTestCase):
+    """ Tests der DELETE-Methode des AdminHandlers.
+
+    Die methode löst die GarbageCollection der Queue aus.
+    Testet, ob es die richtigen Nachrichen löscht.
+    """
+    def fixtures(self):
+        young = datetime.now() - timedelta(days=2)
+        old = datetime.now() - timedelta(days=7, hours=2)
+
+        yield Message(guid='oldenough', message_queue_name='alpha', deleted_at=old,
+                                                                       body='body', content_type='text/plain')
+        yield Message(guid='tooyoung', message_queue_name='alpha', deleted_at=young,
+                                                                       body='body', content_type='text/plain')
+        yield Message(guid='wrongqueue', message_queue_name='beta', deleted_at=old,
+                                                                       body='body', content_type='text/plain')
+        yield Message(guid='notdeleted', message_queue_name='beta', deleted_at=None,
+                                                                       body='body', content_type='text/plain')
+
+    def test_collects_old_deleted_message_in_given_queue(self):
+        """Nachrichten, die vor der Aufbewahrungsfrist gelöscht wurden, werden garbagecollected."""
+        self.app.delete('/admin/alpha/')
+        self.assertFalse(self._message_exists('oldenough'))
+
+    def test_doesnt_collect_young_messages(self):
+        """Nachrichten, die in der Aufbewahrungsfrist liegen, werden nicht garbagecollected."""
+        self.app.delete('/admin/alpha/')
+        self.assertTrue(self._message_exists('tooyoung'))
+
+    def test_doesnt_collect_messages_in_other_queues(self):
+        """Nachrichten aus fremden Queues werden nicht garbagecollected."""
+        self.app.delete('/admin/alpha/')
+        self.assertTrue(self._message_exists('wrongqueue'))
+
+    def test_doesnt_collect_undeleted_messages(self):
+        """Nachrichten, die nicht gelöscht sind, werden nicht garbagecollected."""
+        self.app.delete('/admin/alpha/')
+        self.assertTrue(self._message_exists('notdeleted'))
+
+    def test_on_access_gets_called(self):
+        """Das Event on_access wird aufgerufen."""
+        AdminHandler.on_access = Mock()
+        self.app.delete('/admin/somequeue/')
+        AdminHandler.on_access.assert_called_with('somequeue')
+
+    def test_answers_report(self):
+        """Bei Erfolg wird eine json-zusammenfassung geliefert."""
+        result = self.app.delete('/admin/alpha/')
+        self.assertEquals(json.loads(result.body), {
+            'success': True,
+            'deleted': 1,
+        })
+
+    def _message_exists(self, guid):
+        """Helper, um festzustellen, ob eine Nachricht existiert."""
+        return bool(Message.all().filter('guid =', guid).fetch(1))
 
 
 class TestAdminHandlerGet(DbTestCase):
