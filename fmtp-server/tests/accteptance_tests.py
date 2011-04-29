@@ -255,6 +255,8 @@ class TestQueueHandlerGet(DbTestCase):
         result = self.app.get('/alpha/', headers={'Accept': 'application/xml'})
         self.assertTrue(result.body.startswith('<'))
         self.assertTrue(result.body.endswith('>'))
+        self.assertTrue('<messages>' in result.body)
+        self.assertTrue('<message>' in result.body)
         self.assertTrue('http://localhost/alpha/alice' in result.body)
 
     def test_on_access_gets_called(self):

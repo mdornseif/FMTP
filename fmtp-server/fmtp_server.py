@@ -94,7 +94,7 @@ class QueueHandler(BasicHandler):
             self.response.out.write(json.dumps(document))
         elif accept.startswith('application/xml'):
             self.response.headers["Content-Type"] = 'application/xml'
-            self.response.out.write(dict2xml(document))
+            self.response.out.write(dict2xml(document, listnames={'messages': 'message'}))
         else:
             self.response.headers["Content-Type"] = 'text/plain'
             self.response.out.write('\n'.join(x['url'] for x in document['messages']))
