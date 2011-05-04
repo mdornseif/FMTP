@@ -29,8 +29,12 @@ Nachrichten abrufen und bestätigen (löschen):
 
 """
 
+import logging
 from urlparse import urljoin
 from huTools import hujson, http
+
+
+logger = logging.getLogger('fmtp_client')
 
 
 class FmtpError(RuntimeError):
@@ -111,12 +115,14 @@ class Queue(object):
         for url in self._fetch_message_urls():
             yield self._fetch_message(url)
 
-    def post_message(self, guid, content_type, content):
+    def post_message(self, guid, content_type, content, ignore_duplication_errors=False):
         """Veröffentlicht eine Nachricht auf der FMTP-Queue.
 
         guid: Eindeutiger Bezeichner für die Nachricht
         content_type: Content-Type der Nachricht, beispielsweise text/plain
         content: Inhalt der Nachricht
+        ignore_duplication_errors: Wenn True, werden die exceptions FmtpMessageExists und FmtpMessageDeleted
+            nicht geworfen.
         """
         url = self.queue_url + guid + '/'
         headers = {'Content-Type': content_type}
@@ -124,9 +130,15 @@ class Queue(object):
         status, headers, body = http.fetch(url, method='POST', credentials=self.credentials, headers=headers,
                                                                                               content=content)
         if status == 409:
-            raise FmtpMessageExists('Message %s already exists' % url)
+            if not ignore_duplication_errors:
+                raise FmtpMessageExists('Message %s already exists' % url)
+            else:
+                logger.info('Message %s already in queue %s, ignored', guid, self.queue_url)
         elif status == 410:
-            raise FmtpMessageDeleted('Message %s is deleted' % url)
+            if not ignore_duplication_errors:
+                raise FmtpMessageDeleted('Message %s is deleted' % url)
+            else:
+                logger.info('Message %s already in queue %s, was also deleted, ignored', guid, self.queue_url)
         elif status != 201:
             raise FmtpHttpError('expected 201 when posting to %s, got %s' % (url, status))
 

@@ -58,6 +58,25 @@ class TestMessagePosting(unittest.TestCase):
         self.assertRaises(fmtp_client.FmtpMessageDeleted, self.queue.post_message, '1', 'text/plain',
                                                                                          'Afterlife is scary')
 
+    def test_posting_duplicate_with_ignore(self):
+        """ Testet Unterdrücken von Fehlermeldungen beim Posten.
+
+        Die Fehlermeldungen FmtpMessageDeleted und FmtpMessageExists können per Parameter unterdrückt werden.
+        Andere Fehlermeldungen dürfen nicht verhindert werden.
+        """
+        # duplikate durch existierende Nachrichten werden ignoriert
+        self.fetch.return_value = (409, {}, '')
+        self.queue.post_message('1', 'text/plain', 'Hi Alice', ignore_duplication_errors=True)
+
+        # duplikate durch gelöschte Nachrichten werden ignoriert
+        self.fetch.return_value = (410, {}, '')
+        self.queue.post_message('1', 'text/plain', 'Hi Alice', ignore_duplication_errors=True)
+
+        # andere Fehler werden nicht ignoriert
+        self.fetch.return_value = (401, {}, '')
+        self.assertRaises(fmtp_client.FmtpHttpError, self.queue.post_message, '1', 'text/plain', 'Hi Alice',
+                                                                               ignore_duplication_errors=True)
+
 
 class TestReceivingMessages(unittest.TestCase):
     """Testet das Abrufen einer Nachricht von einem FMTP-Queue.
