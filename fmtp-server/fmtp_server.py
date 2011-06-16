@@ -274,6 +274,7 @@ class AdminHandler(JsonResponseHandler):
         delete_before = datetime.now() - timedelta(days=self.retention_period_days)
         messages = (Message.all()
                            .filter('message_queue_name = ', message_queue_name)
+                           .filter('deleted_at !=', None)
                            .filter('deleted_at <', delete_before))
 
         collected = messages.count()

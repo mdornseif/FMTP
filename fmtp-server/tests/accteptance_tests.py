@@ -303,7 +303,7 @@ class TestAdminHandlerDelete(DbTestCase):
 
     def test_doesnt_collect_undeleted_messages(self):
         """Nachrichten, die nicht gelöscht sind, werden nicht garbagecollected."""
-        self.app.delete('/admin/alpha/')
+        self.app.delete('/admin/beta/')
         self.assertTrue(self._message_exists('notdeleted'))
 
     def test_on_access_gets_called(self):
