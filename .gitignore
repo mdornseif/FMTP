@@ -1,3 +1,4 @@
+*.pyc
 .DS_Store
 *~
 fmtp-server/pythonenv
