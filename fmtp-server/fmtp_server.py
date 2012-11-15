@@ -172,7 +172,7 @@ class MessageHandler(BasicHandler):
             raise HTTP410_Gone('Nachricht mit guid %r in der Queue %r wurde bereits am %s geloescht.'
                                                              % (guid, message_queue_name, message.deleted_at))
         if message.content_type:
-            self.response.headers["Content-Type"] = message.content_type
+            self.response.headers["Content-Type"] = message.content_type.encode('utf-8')
         else:
             self.response.headers["Content-Type"] = 'application/octet-stream'
         self.response.out.write(message.body)
