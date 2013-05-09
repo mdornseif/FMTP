@@ -27,6 +27,10 @@ class Message(db.Model):
     deleted_at = db.DateTimeProperty()  # None, wenn die Nachricht nicht gelöscht wurde, sonst das datum der Löschung.
     created_at = db.DateTimeProperty(auto_now_add=True)
 
+    def __unicode__(self):
+        """Repräsentation als Unicode-Objekt"""
+        return u'%s/%s' % (self.message_queue_name, self.guid)
+
 
 class QueueHandler(BasicHandler):
     """Handler für FMTP-Nachrichtenlisten, gemäss README/Listenformate.
