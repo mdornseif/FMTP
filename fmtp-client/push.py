@@ -1,55 +1,64 @@
 #!/usr/bin/env python
 # encoding: utf-8
 """
-pull.py - Command line tool for FMTP push (message sender).
+push.py - Command line tool for FMTP push (message sender).
 
 See https://github.com/hudora/FMTP for further information.
 
 Created by Philipp Benjamin Köppchen on 2011-03-07.
 Copyright (c) 2010, 2011 HUDORA. All rights reserved.
 """
-from __future__ import with_statement
-
-from os.path import basename
-from optparse import OptionParser
+import mimetypes
+import os
+import optparse
+import shutil
+import sys
 
 from fmtp_client import Queue, FmtpError
 
 
 def main():
-    # Parse Commandline
-    parser = OptionParser()
-    parser.add_option("-f", "--file", dest="filename",
-                      help="upload this file", metavar="FILE")
+    """Main entry point"""
+    parser = optparse.OptionParser()
     parser.add_option("-e", "--endpoint",
                       help="URL of the endpoint")
-    parser.add_option("-g", "--guid", default='',
-                      help="GUID of the message [default: filename]")
     parser.add_option("-c", "--credentials", dest="credentials",
                       help="Credentials (user:password)", default=None)
-    (options, args) = parser.parse_args()
+    parser.add_option("-s", "--source", help="Source directory", default=None)
+    parser.add_option("-d", "--destination", help="Destination directory", default=None)
 
-    if args:
-        parser.error('No positional arguments are accepted')
+    options, args = parser.parse_args()
+
+    if options.source and args:
+        parser.error('Filenames from parameters and source directory is not allowed')
+    elif not (options.source or args):
+        parser.error('No filenames given')
 
     if not options.endpoint:
         parser.error('Please provide an endpoint (-e URL)')
-    if not options.filename:
-        parser.error('Please provide a file to upload (-f FILENAME)')
-
-    # If no GUID is given use Filename
-    guid = options.guid
-    if not guid:
-        guid = basename(options.filename)
-    print "uploading %r to %r" % (options.filename, options.endpoint)
 
     queue = Queue(options.endpoint, credentials=options.credentials)
 
-    try:
-        with open(options.filename, 'rb') as fp:
-            queue.post_message(guid, 'application/octet-stream', fp.read())
-    except FmtpError, e:
-        parser.error(e)
+    if args:
+        filenames = args
+    else:
+        filenames = (os.path.abspath(os.path.join(options.source, filename))
+                     for filename in os.listdir(options.source))
+
+    for filename in filenames:
+        try:
+            with open(filename, 'rb') as fileobj:
+                mimetype, _encoding = mimetypes.guess_type(filename)
+                if mimetype is None:
+                    mimetype = 'application/octet-stream'
+                queue.post_message(os.path.basename(filename), mimetype, fileobj)
+        except FmtpError as exception:
+            sys.stderr.write('Error while transfering %s: %s\n' % (filename, str(exception)))
+            sys.exit(1)
+
+        if options.destination:
+            newpath = os.path.abspath(os.path.join(options.destination, os.path.basename(filename)))
+            shutil.move(filename, newpath)
 
 
 if __name__ == "__main__":
