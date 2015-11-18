@@ -13,19 +13,19 @@ import re
 from huTools import hujson as json
 from huTools.structured import dict2xml
 from huTools.http.tools import quote
-from google.appengine.ext import db
+from google.appengine.ext import ndb
 from gaetk.handler import BasicHandler, JsonResponseHandler
 from gaetk.handler import HTTP404_NotFound, HTTP401_Unauthorized, HTTP403_Forbidden, HTTP410_Gone, HTTP409_Conflict
 
 
-class Message(db.Model):
+class Message(ndb.Model):
     """Repräsentiert eine FMTP-Nachricht."""
-    guid = db.StringProperty(required=True)
-    message_queue_name = db.StringProperty(required=True)
-    content_type = db.StringProperty(required=True)
-    body = db.BlobProperty(required=True)
-    deleted_at = db.DateTimeProperty()  # None, wenn die Nachricht nicht gelöscht wurde, sonst das datum der Löschung.
-    created_at = db.DateTimeProperty(auto_now_add=True)
+    guid = ndb.StringProperty(required=True)
+    message_queue_name = ndb.StringProperty(required=True)
+    content_type = ndb.StringProperty(required=True)
+    body = ndb.BlobProperty(required=True)
+    deleted_at = ndb.DateTimeProperty()  # None, wenn die Nachricht nicht gelöscht wurde, sonst das datum der Löschung.
+    created_at = ndb.DateTimeProperty(auto_now_add=True)
 
     def __unicode__(self):
         """Repräsentation als Unicode-Objekt"""
@@ -79,11 +79,10 @@ class QueueHandler(BasicHandler):
         Für eine Beschreibung des Formats siehe README.
         """
         self.on_access(message_queue_name)
-        messages = (Message.all()
-                           .filter('message_queue_name =', message_queue_name)
-                           .filter('deleted_at =', None)
-                           .order('created_at')
-                           .fetch(self.max_messages))
+        query = Message.query(
+            Message.message_queue_name == message_queue_name, Message.deleted_at == None).order(
+            Message.created_at)
+        messages = query.fetch(self.max_messages)
 
         document = {
             'min_retry_interval': self.min_retry_interval,
@@ -124,10 +123,8 @@ class MessageHandler(BasicHandler):
     def _find_message(self, message_queue_name, guid):
         """Gibt die message_queue_name und guid entsprechene Nachricht aus der DB zurück,
         oder None, wenn keine solche existiert."""
-        return (Message.all()
-                       .filter('guid =', guid)
-                       .filter('message_queue_name', message_queue_name)
-                       .get())
+        query = Message.query(Message.guid == guid, Message.message_queue_name == message_queue_name)
+        return query.get()
 
     def check_messagequeue_name(self, message_queue_name):
         """Gibt True zurück, wenn message_queue_name ein erlaubter Name für eine MesssageQueue ist.
