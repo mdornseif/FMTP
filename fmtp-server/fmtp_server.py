@@ -31,6 +31,9 @@ class Message(ndb.Model):
         """Repräsentation als Unicode-Objekt"""
         return u'%s/%s' % (self.message_queue_name, self.guid)
 
+    def as_dict(self):
+        return self.to_dict(exclude=['body'])
+
 
 class QueueHandler(BasicHandler):
     """Handler für FMTP-Nachrichtenlisten, gemäss README/Listenformate.
