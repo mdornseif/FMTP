@@ -32,6 +32,7 @@ class Message(ndb.Model):
         return u'%s/%s' % (self.message_queue_name, self.guid)
 
     def as_dict(self):
+        """Repräsentation als dict"""
         return self.to_dict(exclude=['body'])
 
 
