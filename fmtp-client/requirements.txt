@@ -1,0 +1,4 @@
+nose
+nosegae
+mock
+--editable git+https://github.com/hudora/huTools#egg=huTools
