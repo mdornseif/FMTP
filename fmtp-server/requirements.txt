@@ -1,0 +1,6 @@
+nose
+nosegae
+WebTest
+pyyaml
+mock
+--editable git+https://github.com/hudora/huTools#egg=huTools
