@@ -264,7 +264,7 @@ class AdminHandler(JsonResponseHandler):
         Dabei werden auch gelöschte Nachrichten angezeigt.
         """
         self.on_access(message_queue_name)
-        messages = Message.all().filter('message_queue_name =', message_queue_name)
+        messages = Message.quer().filter('message_queue_name =', message_queue_name)
         return self.paginate(messages, self.max_messages, datanodename='messages',
                                                           formatter=self._message_as_dict)
 
@@ -277,7 +277,7 @@ class AdminHandler(JsonResponseHandler):
         self.on_access(message_queue_name)
 
         delete_before = datetime.now() - timedelta(days=self.retention_period_days)
-        messages = (Message.all()
+        messages = (Message.quer()
                            .filter('message_queue_name = ', message_queue_name)
                            .filter('deleted_at !=', None)
                            .filter('deleted_at <', delete_before))
